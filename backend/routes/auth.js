@@ -113,31 +113,22 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// ── 41-44: Passport.js explanation (comment) ─────────────────────────────────
-/*
-  Passport.js is an authentication MIDDLEWARE library for Node.js.
-  It supports 500+ "strategies":
-    • passport-local   → username/password (what we do manually above)
-    • passport-jwt     → JWT Bearer tokens
-    • passport-google  → Google OAuth 2.0
-    • passport-github  → GitHub OAuth
-
-  Core concepts:
-    passport.use(new LocalStrategy(verifyFn))  → register a strategy
-    passport.authenticate("local")             → middleware that runs strategy
-    passport.serializeUser / deserializeUser   → session integration
-
-  Example with passport-jwt:
-    const { Strategy, ExtractJwt } = require("passport-jwt");
-    passport.use(new Strategy(
-      { jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: JWT_SECRET },
-      async (payload, done) => {
-        const user = await User.findById(payload.id);
-        return user ? done(null, user) : done(null, false);
-      }
-    ));
-    // Then protect a route:
-    router.get("/protected", passport.authenticate("jwt", { session: false }), handler);
-*/
+// ── 41-44: Passport.js — see dedicated router ────────────────────────────────
+//
+//   The Passport.js implementation is in:
+//     config/passport.js        — LocalStrategy + JwtStrategy definitions
+//     routes/passportAuth.js    — /passport-auth/* endpoints
+//
+//   Available Passport endpoints:
+//     POST /passport-auth/register   → create account
+//     POST /passport-auth/login      → passport-local → returns JWT
+//     GET  /passport-auth/me         → passport-jwt   → current user
+//     GET  /passport-auth/protected  → passport-jwt   → demo protected resource
+//     GET  /passport-auth/profile    → passport-jwt   → user + calorie summary
+//     GET  /passport-auth/strategies → list registered strategies (public)
+//
+//   This file (/auth/*) uses the manual verifyJWT middleware approach.
+//   passportAuth.js uses the same logic via Passport's strategy abstraction.
+//   Both are equivalent — Passport is the standard library approach.
 
 module.exports = router;

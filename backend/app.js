@@ -15,6 +15,7 @@ const path         = require("path");
 const cookieParser = require("cookie-parser");   // Third-party middleware (L28)
 const session      = require("express-session"); // L37-40
 const morgan       = require("morgan");          // Third-party logging middleware (L28)
+const passport     = require("./config/passport"); // L41-44: Passport strategies
 
 // ── 17-20: Creating the Express application ──────────────────────────────────
 const app = express();
@@ -53,6 +54,14 @@ app.use(
   })
 );
 
+// ── 41-44: Passport.js initialisation ────────────────────────────────────────
+//   passport.initialize() must come AFTER session() if you want Passport to
+//   read/write req.session.passport (used when session: true).
+//   For JWT routes we pass { session: false }, so Passport skips session I/O.
+//   passport.session() is only needed if you use session-based Passport auth.
+app.use(passport.initialize());
+// app.use(passport.session()); // ← uncomment if you add session-based routes
+
 // Custom app-level middleware: request logger with timestamp (L25-28)
 app.use((req, _res, next) => {
   req.requestTime = new Date().toISOString();
@@ -70,13 +79,15 @@ app.use((req, res, next) => {
 });
 
 // ── 21-24 / 29-32: Routes ─────────────────────────────────────────────────────
-const apiRouter     = require("./routes/api");        // REST API (JSON)
-const authRouter    = require("./routes/auth");       // L41-44 auth
-const adminRouter   = require("./routes/admin");      // EJS SSR demo (L29-32)
-const socketRouter  = require("./routes/socketDemo"); // L45-48 demo page
+const apiRouter          = require("./routes/api");          // REST API (JSON)
+const authRouter         = require("./routes/auth");         // L41-44 manual JWT auth
+const passportAuthRouter = require("./routes/passportAuth"); // L41-44 Passport.js auth
+const adminRouter        = require("./routes/admin");        // EJS SSR demo (L29-32)
+const socketRouter       = require("./routes/socketDemo");   // L45-48 demo page
 
 app.use("/api", apiRouter);
 app.use("/auth", authRouter);
+app.use("/passport-auth", passportAuthRouter); // ← Passport.js routes (L41-44)
 app.use("/admin", adminRouter);
 app.use("/chat-demo", socketRouter);
 

@@ -1,17 +1,17 @@
-/**
- * src/pages/Signup.tsx
- *
- * Registration page using Express backend (L41-44: bcrypt + JWT).
- */
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Leaf } from "lucide-react";
+import { Leaf, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+const STEPS = [
+  { step: "1", label: "Create your free account" },
+  { step: "2", label: "Set your calorie goal" },
+  { step: "3", label: "Start logging meals" },
+];
 
 export default function SignupPage() {
   const { signUp, user, loading } = useAuth();
@@ -41,72 +41,122 @@ export default function SignupPage() {
           : error
       );
     } else {
-      toast.success("Account created! Welcome to NutriiGuide.");
+      toast.success("Account created! Welcome to NutriGuide.");
       navigate("/dashboard");
     }
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-soft px-4 py-12">
-      <div className="w-full max-w-md">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero shadow-soft">
-            <Leaf className="h-5 w-5 text-primary-foreground" />
+    <div className="min-h-screen flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden flex-col justify-between p-12">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 -left-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        </div>
+
+        <div className="relative z-10 flex items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+            <Leaf className="h-5 w-5 text-white" />
           </span>
-          <span className="text-xl font-bold">NutriGuide</span>
-        </Link>
+          <span className="text-xl font-bold text-white tracking-tight">NutriGuide</span>
+        </div>
 
-        <div className="rounded-2xl border bg-card p-8 shadow-soft">
-          <h1 className="text-2xl font-bold tracking-tight">Create your account</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start your nutrition journey today.</p>
+        <div className="relative z-10">
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-sm text-white font-medium mb-6">
+            <Sparkles className="h-3.5 w-3.5" />
+            Free forever. No credit card needed.
+          </span>
+          <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-4">
+            Start your nutrition<br />journey today.
+          </h2>
+          <p className="text-white/70 text-lg mb-10 leading-relaxed">
+            Join thousands of people making smarter food choices every day.
+          </p>
+          <div className="space-y-4">
+            {STEPS.map(({ step, label }) => (
+              <div key={step} className="flex items-center gap-4">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white text-sm font-bold shrink-0">
+                  {step}
+                </span>
+                <p className="text-white/90 text-sm font-medium">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <p className="relative z-10 text-white/40 text-xs">
+          © {new Date().getFullYear()} NutriGuide. All rights reserved.
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center bg-background px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <Link to="/" className="lg:hidden flex items-center justify-center gap-2 mb-10">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-hero shadow-glow">
+              <Leaf className="h-4 w-4 text-white" />
+            </span>
+            <span className="text-xl font-bold tracking-tight">NutriGuide</span>
+          </Link>
+
+          <div className="mb-8">
+            <h1 className="text-2xl font-extrabold tracking-tight">Create your account</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">Start your nutrition journey today. It's free.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
               <Input
                 id="username"
                 required
+                placeholder="janedoe"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="janedoe"
+                className="h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 required
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="new-password"
                 required
                 minLength={6}
+                placeholder="At least 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-10"
               />
-              <p className="text-xs text-muted-foreground">At least 6 characters.</p>
             </div>
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full bg-gradient-hero text-primary-foreground shadow-soft"
+              className="w-full h-10 bg-gradient-hero text-white shadow-soft hover:shadow-glow transition-shadow font-semibold"
             >
-              {submitting ? "Creating account…" : "Create account"}
+              {submitting ? "Creating account…" : "Create free account"}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-medium text-primary hover:underline">
+            <Link to="/login" className="font-semibold text-primary hover:underline">
               Sign in
             </Link>
           </p>

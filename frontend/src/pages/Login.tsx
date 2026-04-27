@@ -1,18 +1,18 @@
-/**
- * src/pages/Login.tsx
- *
- * Login page using Express backend JWT auth (L41-44).
- * Replaces TanStack Router's createFileRoute + Supabase signIn.
- */
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Leaf } from "lucide-react";
+import { Leaf, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+const BENEFITS = [
+  "Track meals and calories effortlessly",
+  "Visualize your weekly nutrition trends",
+  "Set and hit your daily calorie goals",
+  "Real-time nutrition chat support",
+];
 
 export default function LoginPage() {
   const { signIn, user, loading } = useAuth();
@@ -39,46 +39,93 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gradient-soft px-4 py-12">
-      <div className="w-full max-w-md">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-hero shadow-soft">
-            <Leaf className="h-5 w-5 text-primary-foreground" />
+    <div className="min-h-screen flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-hero relative overflow-hidden flex-col justify-between p-12">
+        {/* Decorative blobs */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute bottom-0 -left-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        </div>
+
+        {/* Brand mark */}
+        <div className="relative z-10 flex items-center gap-2.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+            <Leaf className="h-5 w-5 text-white" />
           </span>
-          <span className="text-xl font-bold">NutriGuide</span>
-        </Link>
+          <span className="text-xl font-bold text-white tracking-tight">NutriGuide</span>
+        </div>
 
-        <div className="rounded-2xl border bg-card p-8 shadow-soft">
-          <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to continue your journey.</p>
+        {/* Tagline + benefits */}
+        <div className="relative z-10">
+          <h2 className="text-4xl font-extrabold text-white leading-tight tracking-tight mb-4">
+            Your nutrition,<br />your goals.
+          </h2>
+          <p className="text-white/70 text-lg mb-8 leading-relaxed">
+            Everything you need to eat better and feel great.
+          </p>
+          <ul className="space-y-3">
+            {BENEFITS.map((b) => (
+              <li key={b} className="flex items-center gap-3 text-white/90 text-sm font-medium">
+                <CheckCircle2 className="h-4 w-4 text-white/70 shrink-0" />
+                {b}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <p className="relative z-10 text-white/40 text-xs">
+          © {new Date().getFullYear()} NutriGuide. All rights reserved.
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center bg-background px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <Link to="/" className="lg:hidden flex items-center justify-center gap-2 mb-10">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-hero shadow-glow">
+              <Leaf className="h-4 w-4 text-white" />
+            </span>
+            <span className="text-xl font-bold tracking-tight">NutriGuide</span>
+          </Link>
+
+          <div className="mb-8">
+            <h1 className="text-2xl font-extrabold tracking-tight">Welcome back</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">Sign in to continue your journey.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 required
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="h-10"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
                 autoComplete="current-password"
                 required
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="h-10"
               />
             </div>
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full bg-gradient-hero text-primary-foreground shadow-soft"
+              className="w-full h-10 bg-gradient-hero text-white shadow-soft hover:shadow-glow transition-shadow font-semibold"
             >
               {submitting ? "Signing in…" : "Sign in"}
             </Button>
@@ -86,8 +133,8 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link to="/signup" className="font-medium text-primary hover:underline">
-              Create one
+            <Link to="/signup" className="font-semibold text-primary hover:underline">
+              Create one free
             </Link>
           </p>
         </div>
