@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= title %></title>
+  <%# 29-32: EJS tag reference:
+      <%= %> outputs escaped HTML
+      <%- %> outputs raw HTML
+      <%  %> runs code (no output)
+      <%# %> comment (not sent to browser)
+  %>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
+    h1   { color: #4ade80; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #1e293b; font-size: 14px; }
+    th { background: #1e293b; color: #94a3b8; text-transform: uppercase; font-size: 12px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #166534; color: #bbf7d0; }
+    a { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <h1>🥗 NutriGuide Admin — SSR Dashboard</h1>
+  <p style="color:#64748b">
+    Server-Side Rendered at <strong><%= currentTime %></strong> &nbsp;|&nbsp;
+    User: <code><%= user.id %></code>
+    &nbsp;|&nbsp; <a href="/admin/logout">Logout</a>
+  </p>
+
+  <%# 29-32: EJS loop over server-injected data %>
+  <h2 style="margin-top:32px">Recent Meal Logs (MongoDB)</h2>
+  <% if (meals.length === 0) { %>
+    <p style="color:#64748b">No meals found — MongoDB may not be connected.</p>
+  <% } else { %>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Calories</th><th>Type</th><th>User ID</th><th>Logged At</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% meals.forEach(function(meal) { %>
+          <tr>
+            <td><%= meal.name %></td>
+            <td><%= meal.calories %> kcal</td>
+            <td><span class="badge"><%= meal.mealType %></span></td>
+            <td style="font-size:12px;color:#64748b"><%= meal.userId %></td>
+            <td style="font-size:12px;color:#64748b">
+              <%= meal.createdAt ? new Date(meal.createdAt).toLocaleString() : "—" %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <p style="margin-top:40px;font-size:12px;color:#334155">
+    This page is rendered by Express + EJS on the server (SSR).<br>
+    The main NutriGuide app at <a href="http://localhost:5173">/</a> uses CSR (React).
+  </p>
+</body>
+</html>
