@@ -1,29 +1,4 @@
-/**
- * utils/socket.js — Socket.io setup for NutriGuide
- *
- * LECTURE COVERAGE:
- *  45-48: Full-duplex communication, mastering socket.io
- *
- *  HTTP is HALF-DUPLEX: client sends a request, server replies, done.
- *    Good for: loading pages, REST APIs.
- *
- *  WebSocket / Socket.io is FULL-DUPLEX: after the initial handshake,
- *  BOTH sides can push messages at any time without a new request.
- *    Good for: live chat, real-time dashboards, multiplayer games.
- *
- *  Socket.io adds:
- *    • Automatic fallback (WebSocket → long-polling)
- *    • Rooms and namespaces for segmenting connections
- *    • Built-in event system
- *    • Reconnection logic
- *
- *  Events used in NutriGuide:
- *    Client → Server:  "chat:message"     — user sends a message
- *    Client → Server:  "meal:logged"       — user logs a meal
- *    Server → Client:  "chat:message"     — broadcast message to room
- *    Server → Client:  "meal:update"       — push calorie update
- *    Server → Client:  "user:count"        — number of online users
- */
+
 
 const { Server } = require("socket.io");
 const jwt        = require("jsonwebtoken");
@@ -40,8 +15,6 @@ function initSocket(httpServer) {
     },
   });
 
-  // ── 45-48: Middleware on socket connections ──────────────────────────────────
-  //   Socket.io supports middleware too — same concept as Express.
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token ||
                   socket.handshake.headers?.authorization?.split(" ")[1];
@@ -49,7 +22,6 @@ function initSocket(httpServer) {
       try {
         socket.user = jwt.verify(token, JWT_SECRET);
       } catch {
-        // Anonymous connection — still allowed for the demo
         socket.user = { id: "anon_" + socket.id, email: "anonymous" };
       }
     } else {
@@ -58,23 +30,18 @@ function initSocket(httpServer) {
     next();
   });
 
-  // ── 45-48: Track connected users ─────────────────────────────────────────────
   let onlineCount = 0;
 
   io.on("connection", (socket) => {
     onlineCount++;
-    console.log(`🔌 Socket connected: ${socket.id} (${socket.user.email})`);
+    console.log(` Socket connected: ${socket.id} (${socket.user.email})`);
 
-    // Broadcast updated count to EVERYONE
     io.emit("user:count", onlineCount);
 
-    // ── Join a personal room (for targeted messages) ─────────────────────────
     socket.join(`user:${socket.user.id}`);
 
-    // ── 45-48: Chat room — the NutriGuide community chat ─────────────────────
     socket.join("chat:global");
 
-    // Client → Server: receive a message
     socket.on("chat:message", (data) => {
       const msg = {
         id:        socket.id + Date.now(),
@@ -84,14 +51,10 @@ function initSocket(httpServer) {
         createdAt: new Date().toISOString(),
       };
 
-      // Server → ALL clients in the room (broadcast the user's message)
       io.to("chat:global").emit("chat:message", msg);
 
-      // ── Auto-reply bot ──────────────────────────────────────────────────
-      // Don't reply to the bot's own messages (prevents infinite loop)
       if (msg.userId === "nutribot") return;
 
-      // Pick a contextual canned reply
       const text = msg.content.toLowerCase();
       let reply;
       if (/\b(hi|hello|hey|hola)\b/.test(text)) {
@@ -120,18 +83,14 @@ function initSocket(httpServer) {
     });
 
 
-    // ── Meal-logged event — push calorie update to user's other tabs ──────────
     socket.on("meal:logged", (data) => {
-      // Emit only to THIS user's room (not everyone)
       io.to(`user:${socket.user.id}`).emit("meal:update", {
         message: `Meal "${data.name}" logged: ${data.calories} kcal`,
         data,
       });
     });
 
-    // ── Typing indicator ──────────────────────────────────────────────────────
     socket.on("chat:typing", (username) => {
-      // broadcast() sends to everyone in the room EXCEPT the sender
       socket.broadcast.to("chat:global").emit("chat:typing", username);
     });
 
@@ -139,19 +98,17 @@ function initSocket(httpServer) {
       socket.broadcast.to("chat:global").emit("chat:stop-typing");
     });
 
-    // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on("disconnect", () => {
       onlineCount = Math.max(0, onlineCount - 1);
       io.emit("user:count", onlineCount);
-      console.log(`🔌 Socket disconnected: ${socket.id}`);
+      console.log(` Socket disconnected: ${socket.id}`);
     });
   });
 
-  console.log("🚀 Socket.io initialised");
+  console.log(" Socket.io initialised");
   return io;
 }
 
-// Export so other modules can emit events (e.g., after saving a meal)
 function getIO() {
   if (!io) throw new Error("Socket.io not initialised");
   return io;

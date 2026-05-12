@@ -1,20 +1,13 @@
-/**
- * controllers/mongoMeals.js — Meal CRUD using Mongoose (L33-36 demo)
- *
- * LECTURE COVERAGE:
- *  33-36: Mongoose ODM — create, read, update, delete documents
- */
 
 const MealLog = require("../models/MealLog");
 
-// ── GET /api/mongo/meals ──────────────────────────────────────────────────────
+// ── GET /api/mongo/meals 
 exports.list = async (req, res, next) => {
   try {
-    // Mongoose .find() returns an array of documents matching the query
     const meals = await MealLog.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
       .limit(50)
-      .lean();  // .lean() returns plain JS objects, not Mongoose docs (faster)
+      .lean();  // .lean() returns plain JS objects, not Mongoose docs 
 
     res.json({ meals, count: meals.length });
   } catch (err) {
@@ -22,7 +15,7 @@ exports.list = async (req, res, next) => {
   }
 };
 
-// ── POST /api/mongo/meals ─────────────────────────────────────────────────────
+// ── POST /api/mongo/meals
 exports.create = async (req, res, next) => {
   try {
     const { name, calories, protein, carbs, fats, meal_type, eaten_on, notes } = req.body;
@@ -40,12 +33,10 @@ exports.create = async (req, res, next) => {
       notes,
     });
 
-    // Use our instance method (defined in the schema)
     console.log("Macros:", meal.macroSummary());
 
     res.status(201).json({ meal });
   } catch (err) {
-    // Mongoose validation errors have err.name === "ValidationError"
     if (err.name === "ValidationError") {
       return res.status(400).json({ error: err.message });
     }
@@ -53,12 +44,11 @@ exports.create = async (req, res, next) => {
   }
 };
 
-// ── GET /api/mongo/meals/:date ─────────────────────────────────────────────────
+// ── GET /api/mongo/meals/:date 
 exports.byDate = async (req, res, next) => {
   try {
     const { date } = req.params;  // e.g. 2026-04-27
 
-    // Use the static method we defined on the schema (L33-36)
     const totalCalories = await MealLog.totalCaloriesForUser(req.user.id, date);
 
     const meals = await MealLog.find({

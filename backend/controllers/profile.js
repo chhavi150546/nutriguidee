@@ -1,10 +1,3 @@
-/**
- * controllers/profile.js
- *
- * Profile CRUD using MongoDB / Mongoose (L33-36).
- * Replaces the Supabase-based profile controller.
- */
-
 const Profile = require("../models/Profile");
 
 // GET /api/profile

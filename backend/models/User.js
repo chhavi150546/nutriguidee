@@ -1,13 +1,3 @@
-/**
- * models/User.js — Mongoose User model (used for JWT/bcrypt demo)
- *
- * LECTURE COVERAGE:
- *  41-44: Authentication with Bcrypt + JWT tokens
- *
- *  The production app uses Supabase Auth, but this model demonstrates
- *  how you would build auth from scratch with bcrypt + JWT.
- */
-
 const mongoose = require("mongoose");
 const bcrypt   = require("bcrypt");
 
@@ -31,21 +21,16 @@ const userSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-// ── 41-44: Pre-save hook — hash password with bcrypt before storing ───────────
-//   bcrypt.hash(plain, saltRounds) is ASYNC — we use async/await here.
-//   This is NON-BLOCKING (L25-28: blocking vs non-blocking code).
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
 
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-// ── 41-44: Instance method — verify plain password against stored hash ────────
 userSchema.methods.comparePassword = async function (plainText) {
   return bcrypt.compare(plainText, this.password);
 };
 
-// Never send the hashed password to the client
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;

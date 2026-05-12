@@ -1,7 +1,3 @@
-/**
- * models/MealLog.js — Mongoose MealLog model (L33-36)
- */
-
 const mongoose = require("mongoose");
 
 const mealLogSchema = new mongoose.Schema(

@@ -49,12 +49,9 @@
   <button id="send-btn" disabled>Send</button>
 </footer>
 
-<!-- Socket.io client library — served automatically by our server -->
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // ── L45-48: Connecting to the server ──────────────────────────────────────
   const socket = io({
-    // auth: { token: "your_jwt_here" }  // ← pass JWT for authenticated connections
   });
 
   const messagesEl = document.getElementById("messages");
@@ -67,7 +64,6 @@
 
   let typingTimer;
 
-  // ── L45-48: Listening to events from the server ───────────────────────────
   socket.on("connect", () => {
     statusEl.textContent = "✅ Connected — socket ID: " + socket.id;
     statusEl.className = "status";
@@ -76,18 +72,16 @@
   });
 
   socket.on("disconnect", () => {
-    statusEl.textContent = "❌ Disconnected — trying to reconnect...";
+    statusEl.textContent = " Disconnected — trying to reconnect...";
     statusEl.className = "status err";
     sendBtn.disabled = true;
   });
 
-  // ── L45-48: Server pushes a message to ALL clients in the room ────────────
   socket.on("chat:message", (msg) => {
     const isMe = msg.userId === socket.id;
     addMessage(msg.username, msg.content, isMe ? "mine" : "theirs", msg.createdAt);
   });
 
-  // ── L45-48: Server pushes online count ───────────────────────────────────
   socket.on("user:count", (n) => {
     onlineEl.textContent = `● ${n} online`;
   });
@@ -100,11 +94,9 @@
     typingEl.textContent = "";
   });
 
-  // ── L45-48: Emitting events TO the server ─────────────────────────────────
   function sendMessage() {
     const content = msgInput.value.trim();
     if (!content) return;
-    // socket.emit(eventName, data) — full-duplex: client pushing to server
     socket.emit("chat:message", {
       username: usernameEl.value || "Guest",
       content,
@@ -116,7 +108,6 @@
   sendBtn.addEventListener("click", sendMessage);
   msgInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") return sendMessage();
-    // Typing indicator
     socket.emit("chat:typing", usernameEl.value || "Guest");
     clearTimeout(typingTimer);
     typingTimer = setTimeout(() => socket.emit("chat:stop-typing"), 1500);

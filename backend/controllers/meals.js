@@ -1,23 +1,13 @@
-/**
- * controllers/meals.js
- *
- * Meal CRUD using MongoDB / Mongoose (L33-36).
- * Replaces the Supabase-based meals controller.
- *
- * L21-24: Route handlers, route parameters, response methods.
- */
-
 const mongoose = require("mongoose");
 const MealLog = require("../models/MealLog");
 
-// GET /api/meals  (optional ?date=YYYY-MM-DD, ?from=YYYY-MM-DD&to=YYYY-MM-DD)
+// GET /api/meals  
 exports.list = async (req, res, next) => {
   try {
     // Cast userId string → ObjectId so Mongoose query matches correctly
     const userId = new mongoose.Types.ObjectId(req.user.id);
     const filter = { userId };
     if (req.query.date) filter.eaten_on = req.query.date;
-    // Support date range for Dashboard/Report (last 7 days, etc.)
     if (req.query.from || req.query.to) {
       filter.eaten_on = {};
       if (req.query.from) filter.eaten_on.$gte = req.query.from;
