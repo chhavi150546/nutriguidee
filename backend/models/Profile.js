@@ -1,7 +1,3 @@
-/**
- * models/Profile.js — Mongoose Profile model (L33-36)
- */
-
 const mongoose = require("mongoose");
 
 const profileSchema = new mongoose.Schema(
