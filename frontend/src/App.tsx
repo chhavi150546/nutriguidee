@@ -15,6 +15,7 @@ import { useAuth } from "./lib/auth-context";
 import LandingPage from "./pages/Landing";
 import LoginPage from "./pages/Login";
 import SignupPage from "./pages/Signup";
+import VerifyEmailPage from "./pages/VerifyEmail";
 
 // Protected layout + pages
 import AppLayout from "./pages/AppLayout";
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
 
         {/* Protected — all wrapped in AppLayout (sidebar/header) */}
         <Route

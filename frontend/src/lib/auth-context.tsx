@@ -20,12 +20,12 @@ import { auth, setToken, clearToken, type AuthUser } from "./api";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string; unverified?: boolean; email?: string }>;
   signUp: (
     email: string,
     password: string,
     username: string
-  ) => Promise<{ error?: string }>;
+  ) => Promise<{ error?: string; email?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -57,7 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({ ...user, id: user._id });
       return {};
     } catch (err: unknown) {
-      return { error: (err as Error).message };
+      const message = (err as Error).message;
+      // Server sets unverified:true in the 403 body; the fetch wrapper turns it
+      // into an Error whose message is the error string. We detect it by text.
+      if (message.includes("verify your email")) {
+        return { error: message, unverified: true, email };
+      }
+      return { error: message };
     }
   };
 
@@ -67,10 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string
   ) => {
     try {
-      const { token, user } = await auth.register(email, password, username);
-      setToken(token);
-      setUser({ ...user, id: user._id });
-      return {};
+      const { email: registeredEmail } = await auth.register(email, password, username);
+      return { email: registeredEmail };
     } catch (err: unknown) {
       return { error: (err as Error).message };
     }

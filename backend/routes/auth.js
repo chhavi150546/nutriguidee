@@ -15,8 +15,10 @@
 const express = require("express");
 const jwt     = require("jsonwebtoken");
 const bcrypt  = require("bcrypt");          // L41-44
+const crypto  = require("crypto");
 const User    = require("../models/User");
 const { verifyJWT } = require("../middleware");
+const { sendVerificationEmail } = require("../utils/email");
 
 const router = express.Router();
 const JWT_SECRET  = process.env.JWT_SECRET  || "nutriguide_jwt_secret_change_me";
@@ -32,16 +34,6 @@ function signToken(user) {
 }
 
 // ── POST /auth/register ───────────────────────────────────────────────────────
-/**
- * 1. Validate body
- * 2. Check if email already exists
- * 3. Create User — bcrypt hashing happens in pre-save hook (models/User.js)
- * 4. Sign JWT and return it
- *
- * L41-44: Why bcrypt?
- *   • Adds a random salt → same password → different hash every time
- *   • saltRounds=12 means 2^12 iterations — slow by design to thwart brute force
- */
 router.post("/register", async (req, res, next) => {
   try {
     const { email, password, username } = req.body;
@@ -54,23 +46,33 @@ router.post("/register", async (req, res, next) => {
       return res.status(409).json({ error: "Email already registered" });
     }
 
-    const user  = await User.create({ email, password, username });
-    const token = signToken(user);
+    // Generate a secure random token valid for 24 hours
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const expires  = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // L37-40: Also set a session so SSR pages can detect login
-    req.session.userId = user._id.toString();
+    const user = await User.create({
+      email,
+      password,
+      username,
+      verificationToken:   rawToken,
+      verificationExpires: expires,
+    });
 
-    res.status(201).json({ token, user });
+    // Send verification email (non-blocking — don't fail registration if mail fails)
+    sendVerificationEmail(email, rawToken).catch((err) =>
+      console.error("[Email] Failed to send verification email:", err.message)
+    );
+
+    res.status(201).json({
+      message: "Registration successful. Please check your email to verify your account.",
+      email,
+    });
   } catch (err) {
     next(err);
   }
 });
 
 // ── POST /auth/login ──────────────────────────────────────────────────────────
-/**
- * L41-44: bcrypt.compare() asynchronously checks plain text against hash.
- *         We never store the plain password.
- */
 router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -83,10 +85,71 @@ router.post("/login", async (req, res, next) => {
     const valid = await user.comparePassword(password);
     if (!valid) return res.status(401).json({ error: "Invalid credentials" });
 
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        error: "Please verify your email before logging in.",
+        unverified: true,
+        email: user.email,
+      });
+    }
+
     const token = signToken(user);
     req.session.userId = user._id.toString(); // L37-40
 
     res.json({ token, user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── GET /auth/verify-email/:token ─────────────────────────────────────────────
+router.get("/verify-email/:token", async (req, res, next) => {
+  try {
+    const user = await User.findOne({
+      verificationToken:   req.params.token,
+      verificationExpires: { $gt: new Date() },
+    }).select("+verificationToken +verificationExpires");
+
+    if (!user) {
+      return res.status(400).json({ error: "Verification link is invalid or has expired." });
+    }
+
+    user.isEmailVerified     = true;
+    user.verificationToken   = undefined;
+    user.verificationExpires = undefined;
+    await user.save();
+
+    const token = signToken(user);
+    req.session.userId = user._id.toString();
+
+    res.json({ message: "Email verified successfully!", token, user });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── POST /auth/resend-verification ───────────────────────────────────────────
+router.post("/resend-verification", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "email is required" });
+
+    const user = await User.findOne({ email }).select("+verificationToken +verificationExpires");
+    if (!user) return res.status(404).json({ error: "No account found with that email." });
+    if (user.isEmailVerified) {
+      return res.status(400).json({ error: "This email is already verified." });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    user.verificationToken   = rawToken;
+    user.verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    sendVerificationEmail(email, rawToken).catch((err) =>
+      console.error("[Email] Failed to resend verification email:", err.message)
+    );
+
+    res.json({ message: "Verification email resent. Please check your inbox." });
   } catch (err) {
     next(err);
   }
@@ -113,31 +176,22 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// ── 41-44: Passport.js explanation (comment) ─────────────────────────────────
-/*
-  Passport.js is an authentication MIDDLEWARE library for Node.js.
-  It supports 500+ "strategies":
-    • passport-local   → username/password (what we do manually above)
-    • passport-jwt     → JWT Bearer tokens
-    • passport-google  → Google OAuth 2.0
-    • passport-github  → GitHub OAuth
-
-  Core concepts:
-    passport.use(new LocalStrategy(verifyFn))  → register a strategy
-    passport.authenticate("local")             → middleware that runs strategy
-    passport.serializeUser / deserializeUser   → session integration
-
-  Example with passport-jwt:
-    const { Strategy, ExtractJwt } = require("passport-jwt");
-    passport.use(new Strategy(
-      { jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: JWT_SECRET },
-      async (payload, done) => {
-        const user = await User.findById(payload.id);
-        return user ? done(null, user) : done(null, false);
-      }
-    ));
-    // Then protect a route:
-    router.get("/protected", passport.authenticate("jwt", { session: false }), handler);
-*/
+// ── 41-44: Passport.js — see dedicated router ────────────────────────────────
+//
+//   The Passport.js implementation is in:
+//     config/passport.js        — LocalStrategy + JwtStrategy definitions
+//     routes/passportAuth.js    — /passport-auth/* endpoints
+//
+//   Available Passport endpoints:
+//     POST /passport-auth/register   → create account
+//     POST /passport-auth/login      → passport-local → returns JWT
+//     GET  /passport-auth/me         → passport-jwt   → current user
+//     GET  /passport-auth/protected  → passport-jwt   → demo protected resource
+//     GET  /passport-auth/profile    → passport-jwt   → user + calorie summary
+//     GET  /passport-auth/strategies → list registered strategies (public)
+//
+//   This file (/auth/*) uses the manual verifyJWT middleware approach.
+//   passportAuth.js uses the same logic via Passport's strategy abstraction.
+//   Both are equivalent — Passport is the standard library approach.
 
 module.exports = router;

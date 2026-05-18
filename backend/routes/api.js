@@ -13,6 +13,7 @@ const { verifyJWT } = require("../middleware");
 const mealsCtrl  = require("../controllers/meals");
 const profileCtrl = require("../controllers/profile");
 const mongoCtrl  = require("../controllers/mongoMeals");
+const { uploadAvatar, handleMulterError } = require("../middleware/upload");
 
 // ── 21-24: Router (modular routing) ──────────────────────────────────────────
 const router = express.Router();
@@ -47,6 +48,17 @@ router.delete("/meals/:id",  verifyJWT, mealsCtrl.remove);
 // ── Profile routes ────────────────────────────────────────────────────────────
 router.get("/profile", verifyJWT, profileCtrl.get);
 router.put("/profile", verifyJWT, profileCtrl.update);
+
+// Avatar upload — multipart/form-data with field "avatar"
+// Multer runs first (parses the file), then handleMulterError catches size/type errors,
+// then the controller uploads to Cloudinary and saves the URL.
+router.post(
+  "/profile/avatar",
+  verifyJWT,
+  uploadAvatar,           // Multer: reads multipart, puts file in req.file.buffer
+  handleMulterError,      // converts Multer errors to JSON responses
+  profileCtrl.uploadAvatar
+);
 
 // ── 33-36: MongoDB / Mongoose demo routes ────────────────────────────────────
 router.get ("/mongo/meals",      verifyJWT, mongoCtrl.list);

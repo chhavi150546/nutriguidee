@@ -52,10 +52,15 @@ export interface AuthUser {
   email: string;
   username: string;
   role: string;
+  isEmailVerified: boolean;
 }
 interface AuthResponse {
   token: string;
   user: AuthUser;
+}
+interface RegisterResponse {
+  message: string;
+  email: string;
 }
 
 export const auth = {
@@ -66,9 +71,18 @@ export const auth = {
     }),
 
   register: (email: string, password: string, username: string) =>
-    apiFetch<AuthResponse>("/auth/register", {
+    apiFetch<RegisterResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, username }),
+    }),
+
+  verifyEmail: (token: string) =>
+    apiFetch<AuthResponse>("/auth/verify-email/" + token),
+
+  resendVerification: (email: string) =>
+    apiFetch<{ message: string }>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
     }),
 
   me: () => apiFetch<{ user: AuthUser }>("/auth/me"),
@@ -127,4 +141,76 @@ export const profile = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+};
+
+// ── Food Catalogue — Prisma + PostgreSQL ─────────────────────────────────────
+export interface Food {
+  id: number;
+  name: string;
+  brand?: string | null;
+  category: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fibre: number;
+  createdAt: string;
+}
+
+export interface FoodLog {
+  id: number;
+  foodId: number;
+  userId: string;
+  grams: number;
+  eatenOn: string;
+  mealType: string;
+  notes?: string | null;
+  food?: Pick<Food, "name" | "calories" | "protein" | "carbs" | "fats">;
+  createdAt: string;
+}
+
+interface FoodListResponse {
+  foods: Food[];
+  pagination: { total: number; page: number; limit: number; pages: number };
+}
+
+export const foods = {
+  // Search the food catalogue (public — no login needed)
+  search: (params: { search?: string; category?: string; page?: number; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.search)   q.set("search",   params.search);
+    if (params.category) q.set("category", params.category);
+    if (params.page)     q.set("page",     String(params.page));
+    if (params.limit)    q.set("limit",    String(params.limit));
+    return apiFetch<FoodListResponse>(`/api/foods?${q.toString()}`);
+  },
+
+  getOne: (id: number) =>
+    apiFetch<{ food: Food & { logs: FoodLog[] } }>(`/api/foods/${id}`),
+
+  create: (data: Omit<Food, "id" | "createdAt">) =>
+    apiFetch<{ food: Food }>("/api/foods", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number, data: Partial<Omit<Food, "id" | "createdAt">>) =>
+    apiFetch<{ food: Food }>(`/api/foods/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  remove: (id: number) => apiFetch(`/api/foods/${id}`, { method: "DELETE" }),
+
+  // Food logs (what the user ate)
+  getLogs: (date?: string) =>
+    apiFetch<{ logs: FoodLog[] }>(`/api/foods/logs${date ? `?date=${date}` : ""}`),
+
+  logFood: (data: { foodId: number; grams?: number; eatenOn?: string; mealType?: string; notes?: string }) =>
+    apiFetch<{ log: FoodLog }>("/api/foods/logs", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  removeLog: (id: number) => apiFetch(`/api/foods/logs/${id}`, { method: "DELETE" }),
 };

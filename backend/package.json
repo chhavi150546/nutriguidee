@@ -5,21 +5,35 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev":   "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
-    "bcrypt":          "^6.0.0",
-    "cookie-parser":   "^1.4.7",
-    "dotenv":          "^17.4.2",
-    "ejs":             "^3.1.10",
-    "express":         "^5.2.1",
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "jsonwebtoken":    "^9.0.3",
-    "mongoose":        "^9.5.0",
-    "morgan":          "^1.10.0",
-    "socket.io":       "^4.8.3"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.5.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "prisma": "^5.22.0"
   }
 }

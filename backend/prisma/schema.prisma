@@ -1,0 +1,85 @@
+// prisma/schema.prisma
+//
+// Prisma schema for NutriGuide's PostgreSQL layer.
+//
+// CONCEPTS COVERED:
+//   • datasource  — tells Prisma which database to connect to
+//   • generator   — generates the Prisma Client (JS/TS query builder)
+//   • model       — maps to a database TABLE (like a Mongoose schema)
+//   • @id         — primary key
+//   • @default    — default value  (autoincrement, now(), uuid)
+//   • @unique     — unique constraint
+//   • @relation   — foreign-key relationship between models
+//   • @@index     — composite index for faster queries
+//
+// How it differs from Mongoose:
+//   Mongoose schema  →  Prisma model
+//   mongoose.connect →  DATABASE_URL in .env
+//   new Model({})    →  prisma.model.create({})
+//   Model.find()     →  prisma.model.findMany()
+//   Model.findById() →  prisma.model.findUnique()
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Food ──────────────────────────────────────────────────────────────────────
+// A global catalogue of food items any user can search when logging a meal.
+// Demonstrates: basic CRUD model, @default, @unique, @@index
+
+model Food {
+  id        Int      @id @default(autoincrement())   // auto-increment PK
+  name      String   @unique                           // food name (unique for upsert)
+  brand     String?                                   // optional brand (? = nullable)
+  category  String   @default("general")             // breakfast, snack, etc.
+
+  // Nutritional info per 100 g
+  calories  Float
+  protein   Float    @default(0)
+  carbs     Float    @default(0)
+  fats      Float    @default(0)
+  fibre     Float    @default(0)
+
+  // Who created this entry — MongoDB userId stored as plain String
+  // (cross-database reference: no foreign key, just store the ID string)
+  createdByUserId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation: one Food → many FoodLog entries
+  logs FoodLog[]
+
+  @@index([name])           // fast name search
+  @@index([category])       // filter by category
+}
+
+// ── FoodLog ───────────────────────────────────────────────────────────────────
+// Records that a user ate X grams of a specific Food item.
+// Demonstrates: @relation (one-to-many), cascade delete, compound index.
+
+model FoodLog {
+  id        Int      @id @default(autoincrement())
+
+  // Foreign key → Food table  (if the Food is deleted, logs are also deleted)
+  foodId    Int
+  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  // MongoDB user reference (stored as string — cross-DB link)
+  userId    String
+
+  grams     Float    @default(100)    // how many grams were eaten
+  eatenOn   String                    // "YYYY-MM-DD"
+  mealType  String   @default("snack")
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, eatenOn])   // fast queries for "user's logs on date"
+}

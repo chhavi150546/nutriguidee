@@ -27,6 +27,11 @@ const userSchema = new mongoose.Schema(
     },
     username: { type: String, trim: true },
     role:     { type: String, enum: ["user", "admin"], default: "user" },
+
+    // ── Email verification ────────────────────────────────────────────────────
+    isEmailVerified:       { type: Boolean, default: false },
+    verificationToken:     { type: String, select: false },
+    verificationExpires:   { type: Date,   select: false },
   },
   { timestamps: true, versionKey: false }
 );
@@ -45,10 +50,12 @@ userSchema.methods.comparePassword = async function (plainText) {
   return bcrypt.compare(plainText, this.password);
 };
 
-// Never send the hashed password to the client
+// Never send the hashed password or raw tokens to the client
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.verificationToken;
+  delete obj.verificationExpires;
   return obj;
 };
 
